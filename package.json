@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "chai": "^4.1.2",
+    "express": "^4.16.2",
     "mocha": "^3.5.0",
     "random-flat-colors": "^1.0.4",
     "react": "^15.6.1",
