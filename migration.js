@@ -1,5 +1,4 @@
 const sqlite3 = require('sqlite3');
-const db = new sqlite3.Database('./database.sqlite');
 
 const dropTableArtist = 'DROP TABLE IF EXISTS Artist';
 const createTableArtist = 'CREATE TABLE Artist' +
@@ -40,13 +39,18 @@ const handleError = (error) => {
     }
 };
 
-db.serialize(function () {
-    db.run(dropTableArtist, handleError);
-    db.run(createTableArtist, handleError);
+const initializeDb = (db) => {
+    const seedDb = db || new sqlite3.Database('./database.sqlite');
+    seedDb.serialize(function () {
+        seedDb.run(dropTableArtist, handleError);
+        seedDb.run(createTableArtist, handleError);
 
-    db.run(dropTableSeries, handleError);
-    db.run(createTableSeries, handleError);
+        seedDb.run(dropTableSeries, handleError);
+        seedDb.run(createTableSeries, handleError);
 
-    db.run(dropTableIssues, handleError);
-    db.run(createTableIssues, handleError);
-});
+        seedDb.run(dropTableIssues, handleError);
+        seedDb.run(createTableIssues, handleError);
+    });
+};
+
+module.exports = initializeDb;

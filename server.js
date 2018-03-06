@@ -1,8 +1,15 @@
 const express = require('express');
 const app = express();
-module.exports = app;
 
-const PORT = process.env.PORT || 4001;
+//
+// db
+//
+const sqlite3 = require('sqlite3');
+let db;
+
+const setDb = (newDb) => {
+    db = newDb || new sqlite3.Database('./database.sqlite');
+};
 
 //
 // Middleware
@@ -25,16 +32,26 @@ app.use('/api', apiRouter);
 
 // --/artists
 const artistRouter = require('./src/routers/artists');
+apiRouter.use('/', (req, res, next) => {
+    req.db = db;
+    next();
+});
 apiRouter.use('/artists', artistRouter);
 
 //
 // bootstrap
 //
+const PORT = process.env.PORT || 4001;
 if (!module.parent) {
     app.listen(PORT, () => {
         console.log(`Server listening on port ${PORT}`);
     });
 }
 
-
-
+//
+// exports
+//
+module.exports = {
+    app,
+    setDb
+};

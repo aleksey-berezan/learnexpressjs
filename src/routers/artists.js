@@ -1,11 +1,9 @@
 const express = require('express');
 const artistsRouter = express.Router({ mergeParams: true });
 
-const sqlite3 = require('sqlite3');
-const db = new sqlite3.Database('./database.sqlite');
-
 module.exports = artistsRouter;
 
+// common
 const handleFailure = (err, res, status, message) => {
     if (!err) {
         return false;
@@ -31,13 +29,15 @@ const rowToArtist = row => {
     }
 };
 
+// get
+
 artistsRouter.param(':id', (req, res, next, id) => {
     req.artistId = Number(id);
     next();
 });
 
 artistsRouter.get('/', (req, res, next) => {
-    db.all(`SELECT * FROM Artist`, (err, rows) => {
+    req.db.all(`SELECT * FROM Artist`, (err, rows) => {
         if (handleFailure(err, res)) {
             return;
         }
@@ -47,8 +47,8 @@ artistsRouter.get('/', (req, res, next) => {
     });
 });
 
-artistsRouter.get('/:id', (req, res, next) => {
-    db.get(`SELECT * FROM Artist WHERE id=$id`, { $id: req.artistId }, (err, row) => {
+const getArtistById = (req, res, id, successStatus) => {
+    req.db.get(`SELECT * FROM Artist WHERE id=$id`, { $id: id }, (err, row) => {
         if (handleFailure(err, res)) {
             return;
         }
@@ -59,6 +59,28 @@ artistsRouter.get('/:id', (req, res, next) => {
         }
 
         const artist = rowToArtist(row);
-        res.status(200).send({ artist });
+        res.status(successStatus || 200).send({ artist });
     });
+};
+
+artistsRouter.get('/:id', (req, res, next) => {
+    return getArtistById(req, res, req.artistId, 200);
+});
+
+// post
+artistsRouter.post('/', (req, res, next) => {
+    const newArtist = req.body.artist;
+    if (!newArtist.name || !newArtist.dateOfBirth || !newArtist.biography) {
+        res.sendStatus(400);
+        return;
+    }
+
+    req.db.run(`INSERT INTO Artist (name, date_of_birth, biography) VALUES ('${newArtist.name}', '${newArtist.dateOfBirth}', '${newArtist.biography}')`,
+        function (err) {
+            if (handleFailure(err, res)) {
+                return;
+            }
+
+            return getArtistById(req, res, this.lastID, 201);
+        });
 });
