@@ -43,8 +43,10 @@ const handleError = (error) => {
 db.serialize(function () {
     db.run(dropTableArtist, handleError);
     db.run(createTableArtist, handleError);
+
     db.run(dropTableSeries, handleError);
     db.run(createTableSeries, handleError);
+
     db.run(dropTableIssues, handleError);
     db.run(createTableIssues, handleError);
 });

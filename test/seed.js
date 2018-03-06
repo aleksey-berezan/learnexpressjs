@@ -2,7 +2,6 @@ const sqlite3 = require('sqlite3');
 const db = new sqlite3.Database('./test/test.sqlite');
 
 function seedArtistDatabase(done) {
-  console.log('seeding artist database');
   db.serialize(function() {
     db.run('DROP TABLE IF EXISTS Artist');
     db.run('CREATE TABLE `Artist` ( ' +
