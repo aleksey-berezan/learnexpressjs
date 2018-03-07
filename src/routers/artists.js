@@ -30,7 +30,6 @@ const rowToArtist = row => {
 };
 
 // get
-
 artistsRouter.param(':id', (req, res, next, id) => {
     req.artistId = Number(id);
     next();
@@ -82,5 +81,42 @@ artistsRouter.post('/', (req, res, next) => {
             }
 
             return getArtistById(req, res, this.lastID, 201);
+        });
+});
+
+// put
+artistsRouter.put('/:id', (req, res, next) => {
+    const updatedArtist = req.body.artist;
+    if (!updatedArtist.name || !updatedArtist.dateOfBirth || !updatedArtist.biography) {
+        res.sendStatus(400);
+        return;
+    }
+
+    // TODO: parametrize
+    req.db.run(`UPDATE Artist SET name='${updatedArtist.name}', date_of_birth='${updatedArtist.dateOfBirth}', biography='${updatedArtist.biography}' WHERE id=${req.artistId}`,
+        function (err) {
+            if (handleFailure(err, res)) {
+                return;
+            }
+
+            return getArtistById(req, res, req.artistId, 200);
+        });
+});
+
+// delete
+artistsRouter.delete('/:id', (req, res, next) => {
+    // const updatedArtist = req.body.artist;
+    // if (!updatedArtist.name || !updatedArtist.dateOfBirth || !updatedArtist.biography) {
+    //     res.sendStatus(400);
+    //     return;
+    // }
+
+    req.db.run(`UPDATE Artist SET is_currently_employed=0 WHERE id=${req.artistId}`,
+        function (err) {
+            if (handleFailure(err, res)) {
+                return;
+            }
+
+            return getArtistById(req, res, req.artistId, 200);
         });
 });
