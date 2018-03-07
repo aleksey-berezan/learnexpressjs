@@ -270,7 +270,7 @@ describe('Issue Table', function () {
 });
 
 describe('GET /api/artists', function () {
-  before(function (done) {
+  beforeEach(function (done) {
     seed.seedArtistDatabase(done);
   });
 
@@ -295,7 +295,7 @@ describe('GET /api/artists', function () {
 });
 
 describe('GET /api/artists/:id', function () {
-  before(function (done) {
+  beforeEach(function (done) {
     seed.seedArtistDatabase(done);
   });
 
@@ -509,7 +509,7 @@ describe('DELETE /api/artists/:id', function () {
 });
 
 describe('GET /api/series', function () {
-  before(function (done) {
+  beforeEach(function (done) {
     seed.seedSeriesDatabase(done);
   });
 
@@ -533,7 +533,7 @@ describe('GET /api/series', function () {
 });
 
 describe('GET /api/series/:id', function () {
-  before(function (done) {
+  beforeEach(function (done) {
     seed.seedSeriesDatabase(done);
   });
 
