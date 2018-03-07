@@ -730,7 +730,7 @@ describe('DELETE /api/series/:id', function () {
 });
 
 describe('GET /api/series/:seriesId/issues', function () {
-  before(function (done) {
+  beforeEach(function (done) {
     seed.seedIssueDatabase(done);
   });
 

@@ -30,13 +30,18 @@ app.use(bodyParser.json());
 const apiRouter = express.Router();
 app.use('/api', apiRouter);
 
-// --/artists
-const artistRouter = require('./src/routers/artists');
 apiRouter.use('/', (req, res, next) => {
     req.db = db;
     next();
 });
+
+// ~/artists
+const artistRouter = require('./src/routers/artists');
 apiRouter.use('/artists', artistRouter);
+
+// ~/series
+const seriesRouter = require('./src/routers/series');
+apiRouter.use('/series', seriesRouter);
 
 //
 // bootstrap
