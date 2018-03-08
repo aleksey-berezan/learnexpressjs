@@ -687,7 +687,7 @@ describe('PUT /api/series/:id', function () {
 
 describe('DELETE /api/series/:id', function () {
   beforeEach(function (done) {
-    seed.seedSeriesDatabase(done);
+    seed.seedFullDatabase (done);
   });
 
   it('should remove the series with the specified ID from the database if that series has no related issues', function () {
@@ -775,10 +775,11 @@ describe('POST /api/series/:seriesId/issues', function () {
       name: 'New Issue',
       issueNumber: 3,
       publicationDate: 'January 3, 1990',
-      artistId: 1
+      artistId: 1,
+      seriesId: 2
     };
 
-    seed.seedIssueDatabase(done);
+    seed.seedFullDatabase(done);
   });
 
   it('should create a valid issue', function (done) {
@@ -798,7 +799,7 @@ describe('POST /api/series/:seriesId/issues', function () {
           expect(issue.publication_date).to.equal(newIssue.publicationDate);
           expect(issue.artist_id).to.equal(newIssue.artistId);
           expect(issue.series_id).to.equal(2);
-          done()
+          done();
         });
       }).catch(done);
   });
@@ -861,7 +862,8 @@ describe('PUT /api/series/:seriesId/issues/:issueId', function () {
       name: 'Updated Issue',
       issueNumber: 3,
       publicationDate: 'January 3, 1990',
-      artistId: 2
+      artistId: 2,
+      seriesId: 2
     };
 
     seed.seedIssueDatabase(done);
@@ -913,9 +915,11 @@ describe('PUT /api/series/:seriesId/issues/:issueId', function () {
 
   it('should return a 404 status code for invalid issue IDs', function () {
     updatedIssue = {
+      name: 'invalid issue',
       issueNumber: 3,
       publicationDate: 'January 3, 1990',
-      artistId: 2
+      artistId: 2,
+      seriesId: 2
     };
 
     return request(app)
