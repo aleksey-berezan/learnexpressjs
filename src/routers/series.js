@@ -1,23 +1,8 @@
 const express = require('express');
 const seriesRouter = express.Router({ mergeParams: true });
+const dbCallback = require('../utils/commonutils').dbCallback;
 
 module.exports = seriesRouter;
-
-// common
-const handleFailure = (err, res, status, message) => {
-    if (!err) {
-        return false;
-    }
-
-    console.log(err);
-    if (!res) {
-        throw err;
-    }
-
-    res.status(status || 500);
-    res.send(message || err);
-    return true;
-};
 
 const rowToSeries = row => {
     return {
@@ -28,11 +13,7 @@ const rowToSeries = row => {
 };
 
 const getSeriesById = (req, res, id, successStatus) => {
-    req.db.get(`SELECT * FROM Series WHERE id=${id}`, (err, row) => {
-        if (handleFailure(err, res)) {
-            return;
-        }
-
+    req.db.get(`SELECT * FROM Series WHERE id=${id}`, dbCallback(res, (row) => {
         if (!row) {
             res.sendStatus(404);
             return;
@@ -40,7 +21,7 @@ const getSeriesById = (req, res, id, successStatus) => {
 
         const series = rowToSeries(row);
         res.status(successStatus || 200).send({ series });
-    });
+    }));
 };
 
 // get
@@ -50,14 +31,10 @@ seriesRouter.param(':id', (req, res, next, id) => {
 });
 
 seriesRouter.get('/', (req, res, next) => {
-    req.db.all(`SELECT * FROM Series`, (err, rows) => {
-        if (handleFailure(err, res)) {
-            return;
-        }
-
+    req.db.all(`SELECT * FROM Series`, dbCallback(res, (rows) => {
         const series = rows.map(rowToSeries);
         res.status(200).send({ series });
-    });
+    }));
 });
 
 seriesRouter.get('/:id', (req, res, next) => {
@@ -73,13 +50,9 @@ seriesRouter.post('/', (req, res, next) => {
     }
 
     req.db.run(`INSERT INTO Series (name, description) VALUES ('${newSeries.name}', '${newSeries.description}')`,
-        function (err) {
-            if (handleFailure(err, res)) {
-                return;
-            }
-
-            return getSeriesById(req, res, this.lastID, 201);
-        });
+        dbCallback(res, (_, lastId) => {
+            return getSeriesById(req, res, lastId, 201);
+        }));
 });
 
 // put
@@ -92,22 +65,15 @@ seriesRouter.put('/:id', (req, res, next) => {
 
     // TODO: parametrize
     req.db.run(`UPDATE Series SET name='${updatedSeries.name}', description='${updatedSeries.description}' WHERE id=${req.seriesId}`,
-        function (err) {
-            if (handleFailure(err, res)) {
-                return;
-            }
-
+        dbCallback(res, () => {
             return getSeriesById(req, res, req.seriesId, 200);
-        });
+        }));
 });
 
 // delete
 seriesRouter.delete('/:id', (req, res, next) => {
     const seriesId = req.seriesId;
-    req.db.get(`SELECT COUNT(*) as count FROM Issue WHERE series_id=${seriesId}`, (err, row) => {
-        if (handleFailure(err, res)) {
-            return;
-        }
+    req.db.get(`SELECT COUNT(*) as count FROM Issue WHERE series_id=${seriesId}`, dbCallback(res, (row) => {
         const count = row.count;
         if (count === undefined) {
             res.status(500).send('Error while counting issues');
@@ -119,14 +85,10 @@ seriesRouter.delete('/:id', (req, res, next) => {
             return;
         }
 
-        req.db.run(`DELETE FROM Series WHERE id=${seriesId}`, (err) => {
-            if (handleFailure(err, res)) {
-                return;
-            }
-
+        req.db.run(`DELETE FROM Series WHERE id=${seriesId}`, dbCallback(res, () => {
             return res.sendStatus(204);
-        });
-    });
+        }));
+    }));
 });
 
 //
@@ -139,11 +101,7 @@ seriesRouter.param(':issueId', (req, res, next, id) => {
 });
 
 const getIssueById = (req, res, id, successStatus) => {
-    req.db.get(`SELECT * FROM Series WHERE id=${id}`, (err, row) => {
-        if (handleFailure(err, res)) {
-            return;
-        }
-
+    req.db.get(`SELECT * FROM Series WHERE id=${id}`, dbCallback(res, (row) => {
         if (!row) {
             res.sendStatus(404);
             return;
@@ -151,7 +109,7 @@ const getIssueById = (req, res, id, successStatus) => {
 
         const series = rowToSeries(row);
         res.status(successStatus || 200).send({ series });
-    });
+    }));
 };
 
 const rowToIssue = (row) => {
@@ -167,11 +125,7 @@ const rowToIssue = (row) => {
 
 // get
 seriesRouter.get('/:id/issues', (req, res, next) => {
-    req.db.all(`SELECT Issue.* FROM Series Series LEFT OUTER JOIN Issue ON Series.id = Issue.series_id WHERE Series.id=${req.seriesId}`, (err, rows) => {
-        if (handleFailure(err, res)) {
-            return;
-        }
-
+    req.db.all(`SELECT Issue.* FROM Series Series LEFT OUTER JOIN Issue ON Series.id = Issue.series_id WHERE Series.id=${req.seriesId}`, dbCallback(res, (rows) => {
         if (!rows) {
             res.sendStatus(500);
             return;
@@ -184,7 +138,7 @@ seriesRouter.get('/:id/issues', (req, res, next) => {
 
         const issues = rows.filter(issue => issue.id);
         res.status(200).send({ issues });
-    });
+    }));
 });
 
 // post
@@ -197,31 +151,19 @@ seriesRouter.post('/:id/issues', (req, res, next) => {
         return;
     }
 
-    req.db.get(`SELECT COUNT(*) as count FROM Artist where id=${artistId}`, (err, row) => {
-        if (handleFailure(err, res)) {
-            return;
-        }
-
+    req.db.get(`SELECT COUNT(*) as count FROM Artist where id=${artistId}`, dbCallback(res, (row) => {
         if (row.count == 0) {
             res.sendStatus(400);
             return;
         }
 
-        req.db.run(`INSERT INTO Issue (name, issue_number, publication_date, artist_id, series_id) VALUES ('${issue.name}', '${issue.issueNumber}', '${issue.publicationDate}', '${issue.artistId}', '${issue.seriesId}')`, function (err, row) {
-            if (handleFailure(err, res)) {
-                return;
-            }
-
-            const lastId = this.lastID;
-            req.db.get(`SELECT * FROM Issue WHERE id=${lastId}`, (err, row) => {
-                if (handleFailure(err, res)) {
-                    return;
-                }
-
-                res.status(201).send({ issue: row });
-            });
-        });
-    });
+        req.db.run(`INSERT INTO Issue (name, issue_number, publication_date, artist_id, series_id) VALUES ('${issue.name}', '${issue.issueNumber}', '${issue.publicationDate}', '${issue.artistId}', '${issue.seriesId}')`,
+            dbCallback(res, (_, lastId) => {
+                req.db.get(`SELECT * FROM Issue WHERE id=${lastId}`, dbCallback(res, (row) => {
+                    res.status(201).send({ issue: row });
+                }));
+            }));
+    }));
 });
 
 // put
@@ -236,74 +178,45 @@ seriesRouter.put('/:id/issues/:issueId', (req, res, next) => {
         return;
     }
 
-    req.db.get(`SELECT COUNT(*) as count FROM Issue WHERE id=${issueId}`, (err, row) => {
-        if (handleFailure(err, res)) {
-            return;
-        }
-
+    req.db.get(`SELECT COUNT(*) as count FROM Issue WHERE id=${issueId}`, dbCallback(res, (row) => {
         if (row.count == 0) {
             res.sendStatus(404);
             return;
         }
 
-        req.db.get(`SELECT COUNT(*) as count FROM Series where id=${seriesId}`, (err, row) => {
-            if (handleFailure(err, res)) {
-                return;
-            }
-
+        req.db.get(`SELECT COUNT(*) as count FROM Series where id=${seriesId}`, dbCallback(res, (row) => {
             if (row.count == 0) {
                 res.sendStatus(400);
                 return;
             }
 
-            req.db.get(`SELECT COUNT(*) as count FROM Artist where id=${artistId}`, (err, row) => {
-                if (handleFailure(err, res)) {
-                    return;
-                }
-
+            req.db.get(`SELECT COUNT(*) as count FROM Artist where id=${artistId}`, dbCallback(res, (row) => {
                 if (row.count == 0) {
                     res.sendStatus(400);
                     return;
                 }
 
-                req.db.run(`UPDATE Issue SET name='${issue.name}', issue_number=${issue.issueNumber},publication_date='${issue.publicationDate}',artist_id=${issue.artistId},series_id=${issue.seriesId} WHERE id=${issueId}`, function (err, row) {
-                    if (handleFailure(err, res)) {
-                        return;
-                    }
-
-                    req.db.get(`SELECT * FROM Issue WHERE id=${issueId}`, (err, row) => {
-                        if (handleFailure(err, res)) {
-                            return;
-                        }
-
+                req.db.run(`UPDATE Issue SET name='${issue.name}', issue_number=${issue.issueNumber},publication_date='${issue.publicationDate}',artist_id=${issue.artistId},series_id=${issue.seriesId} WHERE id=${issueId}`, dbCallback(res, (row) => {
+                    req.db.get(`SELECT * FROM Issue WHERE id=${issueId}`, dbCallback(res, (row) => {
                         res.status(200).send({ issue: row });
-                    });
-                });
-            });
-        });
-    });
+                    }));
+                }));
+            }));
+        }));
+    }));
 });
 
 // delete
 seriesRouter.delete('/:id/issues/:issueId', (req, res, next) => {
     const issueId = req.issueId;
-
-    req.db.get(`SELECT COUNT(*) as count FROM Issue WHERE id=${issueId}`, (err, row) => {
-        if (handleFailure(err, res)) {
-            return;
-        }
-
+    req.db.get(`SELECT COUNT(*) as count FROM Issue WHERE id=${issueId}`, dbCallback(res, (row) => {
         if (row.count == 0) {
             res.sendStatus(404);
             return;
         }
 
-        req.db.run(`DELETE FROM Issue WHERE id=${issueId}`, (err, row) => {
-            if (handleFailure(err, res)) {
-                return;
-            }
-
+        req.db.run(`DELETE FROM Issue WHERE id=${issueId}`, dbCallback(res, (row) => {
             res.sendStatus(204);
-        });
-    });
+        }));
+    }));
 });

@@ -1,23 +1,8 @@
 const express = require('express');
+const dbCallback = require('../utils/commonutils').dbCallback;
 const artistsRouter = express.Router({ mergeParams: true });
 
 module.exports = artistsRouter;
-
-// common
-const handleFailure = (err, res, status, message) => {
-    if (!err) {
-        return false;
-    }
-
-    console.log(err);
-    if (!res) {
-        throw err;
-    }
-
-    res.status(status || 500);
-    res.send(message || err);
-    return true;
-};
 
 const rowToArtist = row => {
     return {
@@ -36,22 +21,14 @@ artistsRouter.param(':id', (req, res, next, id) => {
 });
 
 artistsRouter.get('/', (req, res, next) => {
-    req.db.all(`SELECT * FROM Artist`, (err, rows) => {
-        if (handleFailure(err, res)) {
-            return;
-        }
-
+    req.db.all(`SELECT * FROM Artist`, dbCallback(res, (rows) => {
         const artists = rows.map(rowToArtist);
         res.status(200).send({ artists });
-    });
+    }));
 });
 
 const getArtistById = (req, res, id, successStatus) => {
-    req.db.get(`SELECT * FROM Artist WHERE id=$id`, { $id: id }, (err, row) => {
-        if (handleFailure(err, res)) {
-            return;
-        }
-
+    req.db.get(`SELECT * FROM Artist WHERE id=$id`, { $id: id }, dbCallback(res, (row) => {
         if (!row) {
             res.sendStatus(404);
             return;
@@ -59,7 +36,7 @@ const getArtistById = (req, res, id, successStatus) => {
 
         const artist = rowToArtist(row);
         res.status(successStatus || 200).send({ artist });
-    });
+    }));
 };
 
 artistsRouter.get('/:id', (req, res, next) => {
@@ -75,13 +52,9 @@ artistsRouter.post('/', (req, res, next) => {
     }
 
     req.db.run(`INSERT INTO Artist (name, date_of_birth, biography) VALUES ('${newArtist.name}', '${newArtist.dateOfBirth}', '${newArtist.biography}')`,
-        function (err) {
-            if (handleFailure(err, res)) {
-                return;
-            }
-
-            return getArtistById(req, res, this.lastID, 201);
-        });
+        dbCallback(res, (_, lastId) => {
+            return getArtistById(req, res, lastId, 201);
+        }));
 });
 
 // put
@@ -94,29 +67,15 @@ artistsRouter.put('/:id', (req, res, next) => {
 
     // TODO: parametrize
     req.db.run(`UPDATE Artist SET name='${updatedArtist.name}', date_of_birth='${updatedArtist.dateOfBirth}', biography='${updatedArtist.biography}' WHERE id=${req.artistId}`,
-        function (err) {
-            if (handleFailure(err, res)) {
-                return;
-            }
-
+        dbCallback(res, () => {
             return getArtistById(req, res, req.artistId, 200);
-        });
+        }));
 });
 
 // delete
 artistsRouter.delete('/:id', (req, res, next) => {
-    // const updatedArtist = req.body.artist;
-    // if (!updatedArtist.name || !updatedArtist.dateOfBirth || !updatedArtist.biography) {
-    //     res.sendStatus(400);
-    //     return;
-    // }
-
     req.db.run(`UPDATE Artist SET is_currently_employed=0 WHERE id=${req.artistId}`,
-        function (err) {
-            if (handleFailure(err, res)) {
-                return;
-            }
-
+        dbCallback(res, () => {
             return getArtistById(req, res, req.artistId, 200);
-        });
+        }));
 });
